@@ -1,11 +1,12 @@
+import imp
 import time
 import threading
 import socketserver
 from util import *
-from module import *
+from server_module import *
 from threading import Thread
 
-net = Net(80, 256, 128, 8)
+net = Net(20, 256, 128, 4)
 
 
 class Process_Thread(Thread):
@@ -35,27 +36,28 @@ class MyHandler(socketserver.BaseRequestHandler):
     def handle(self):
         try:
             while True:
-                size = get_int(self.request.recv(2))
+                byte_data = b''
+                while(len(byte_data) < 2):
+                    byte_data += self.request.recv(2)
+                size = get_int(byte_data)
                 send2_time = time.time()
-                if(size == 0):
-                    break
                 data = b''
                 while(len(data) < size):
                     data += self.request.recv(size-len(data))
-                data = bytes2json(data)
+                data = bytes2json(data,"SERVER")
                 data['send2_time'] = send2_time
                 data['send3_time'] = time.time()
                 processer = Process_Thread(self.request, data)
                 processer.start()
-                print(data)
+                LOG("SERVER", data)
         except Exception as e:
-            print(e)
+            LOG("SERVER", e)
         finally:
-            print("连接断开：", self.client_address, "\n")
+            LOG("SERVER", "连接断开：", self.client_address)
             self.request.close()
 
     def setup(self):
-        print("连接建立：", self.client_address)
+        LOG("SERVER", "连接建立：", self.client_address)
 
 
 class SocketServer(Thread):
@@ -63,8 +65,9 @@ class SocketServer(Thread):
         Thread.__init__(self)
 
     def run(self):
-        HOST, PORT = "0.0.0.0", 9999
+        import socket
+        HOST, PORT = HOST_NAME, HOST_PORT
         self.server = socketserver.ThreadingTCPServer(
             (HOST, PORT), MyHandler)
-        print("Start Socket Server...")
+        LOG("SERVER", "Start Socket Server...\nlisten on: {}:{}".format(HOST, PORT))
         self.server.serve_forever()

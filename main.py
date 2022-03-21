@@ -1,6 +1,7 @@
-from server import SocketServer
-import time
 import os
+import time
+from client import Client
+from server import SocketServer
 
 
 def wait_for_exit():
@@ -11,11 +12,18 @@ def wait_for_exit():
         os._exit(0)
 
 
-def main():
+def client_main():
+    client = Client()
+    client.start()
+
+
+def server_main():
     server = SocketServer()
     server.start()
-    wait_for_exit()
 
 
 if __name__ == "__main__":
-    main()
+    server_main()
+    time.sleep(1)
+    client_main()
+    wait_for_exit()
